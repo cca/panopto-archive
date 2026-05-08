@@ -1,0 +1,22 @@
+[project]
+name = "panochive"
+maintainers = [
+    { name = "Eric Phetteplace", email = "phette23@gmail.com" }
+]
+version = "0.1.0"
+description = "Archive Panopto sessions"
+license = "ECL-2.0"
+readme = "readme.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.3.3",
+    "requests>=2.33.1",
+    "rich>=15.0.0",
+]
+
+[project.scripts]
+panochive = "panochive.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
