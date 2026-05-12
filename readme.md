@@ -39,6 +39,14 @@ uv run panochive --test c117dc01-bc96-4eca-a53a-ace50173fb6e
 uv run panochive "CCA Departments" --dest data/
 ```
 
+## Development
+
+```sh
+uv run pytest src/panochive/tests # test
+uv run ruff format src/panochive # formatting
+uv run ruff check src/panochive # type checking and linting
+```
+
 ## License
 
 ECL-2.0
