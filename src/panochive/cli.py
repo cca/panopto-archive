@@ -9,15 +9,12 @@ from rich.table import Table
 
 from .panopto.api import PanoptoAPICLient
 from .panopto.oauth2 import PanoptoOAuth2
+from .utils import format_duration
 
 
 def folder_table(folder: dict[str, Any]) -> Table:
     # table alignment but no border lines
-    table = Table(
-        highlight=True,
-        pad_edge=False,
-        box=None,
-    )
+    table = Table(box=None, highlight=True, pad_edge=False)
     table.add_row("Id:", folder["Id"])
     table.add_row("Description:", folder["Description"])
     table.add_row(
@@ -34,9 +31,10 @@ def sessions_table(sessions: list[dict[str, Any]]) -> Table:
     table.add_column("Created", justify="right", style="magenta")
     # CreatedBy data empty in the API?
     # table.add_column("Creator", justify="right", style="cyan")
-    table.add_column("Duration (m)", justify="right", style="cyan")
+    table.add_column("Duration", justify="right", style="cyan")
     table.add_column("Description", style="green")
-    table.add_column("URL", style="blue")
+    # URL gets truncated & unclickable in table
+    # table.add_column("URL", style="blue")
     for session in sessions:
         date_created: datetime = datetime.fromisoformat(
             session["StartTime"].rstrip("Z")
@@ -45,9 +43,9 @@ def sessions_table(sessions: list[dict[str, Any]]) -> Table:
             session["Name"],
             date_created.strftime("%Y-%m-%d"),
             # session.get("CreatedBy", {}).get("Username") or "[unknown]",
-            str(round(session.get("Duration", 0.0) / 60.0, 2)),
+            format_duration(session.get("Duration", 0.0)),
             session["Description"],
-            session["Urls"]["ViewerUrl"],
+            # session["Urls"]["ViewerUrl"],
         )
     return table
 
@@ -92,7 +90,7 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
     if test:
         # TODO models for Folder and Session objects
         folder: dict[str, Any] = api_client.get_folder(folder_id)
-        console.print(f"=== FOLDER: {folder['Name']} ===")
+        console.print(f"=== FOLDER: {folder['Name']} ===", highlight=False)
         console.print(folder_table(folder))
         sessions: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
         if len(sessions):
