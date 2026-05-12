@@ -11,8 +11,24 @@ from .panopto.api import PanoptoAPICLient
 from .panopto.oauth2 import PanoptoOAuth2
 
 
+def folder_table(folder: dict[str, Any]) -> Table:
+    # table alignment but no border lines
+    table = Table(
+        highlight=True,
+        pad_edge=False,
+        box=None,
+    )
+    table.add_row("Id:", folder["Id"])
+    table.add_row("Description:", folder["Description"])
+    table.add_row(
+        "Parent:", folder.get("ParentFolder", {}).get("Name", "NULL (possibly root?)")
+    )
+    table.add_row("URL:", folder["Urls"]["FolderUrl"])
+    return table
+
+
 def sessions_table(sessions: list[dict[str, Any]]) -> Table:
-    table = Table(title="Panopto Sessions")
+    table = Table(title="Sessions")
     # table.add_column("Id", style="cyan", no_wrap=True)
     table.add_column("Name", style="cyan")
     table.add_column("Created", justify="right", style="magenta")
@@ -77,7 +93,7 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
         # TODO models for Folder and Session objects
         folder: dict[str, Any] = api_client.get_folder(folder_id)
         console.print(f"=== FOLDER: {folder['Name']} ===")
-        console.print_json(data=folder)
+        console.print(folder_table(folder))
         sessions: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
         if len(sessions):
             console.print(sessions_table(sessions))
