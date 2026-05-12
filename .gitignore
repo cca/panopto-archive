@@ -1,2 +1,4 @@
 data/*
 .env
+# Panopto OAuth token cache
+*.cache

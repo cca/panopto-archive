@@ -13,18 +13,30 @@ I don't know how much of that will be possible, e.g. having content hashes of st
 
 ## Setup
 
-TODO: credentials
+### Create an OAuth2 Client
+
+- Panopto admin goes to System > [OAuth2 Clients](https://ccarts.hosted.panopto.com/Panopto/Pages/Admin/OauthClients/List.aspx#)
+- **New** > make it a  server-side client\*
+- CORS URL: `http://localhost` & Redirect URL: `http://localhost:9127/redirect`
+- Copy the client ID and secret into the `.env` file (see example.env)
+
+\* This fake server-side weirdness is how the Panopto OAuth2 example was designed and could be avoided by rewriting it.
+
+###
 
 ```sh
 uv sync
-cp example.env .env # fill in credentials
+# test (no downloads) with "CCA Departments" folder ID
+uv run panochive --test c117dc01-bc96-4eca-a53a-ace50173fb6e
 ```
+
+`mise` is also used to autoload the `.env` file and manage the python version, but these could be done manually, e.g. `export SERVER=ccarts.hosted.panopto.com` etc...
 
 ## Usage
 
 ```sh
 # might need to start with folder ID otherwise we need to folders/search first
-uv run panochive --folder "CCA Departments" --dest data/
+uv run panochive "CCA Departments" --dest data/
 ```
 
 ## License
