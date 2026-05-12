@@ -1,3 +1,4 @@
+from datetime import datetime
 from os import environ
 from pathlib import Path
 from typing import Any
@@ -13,15 +14,20 @@ from .panopto.oauth2 import PanoptoOAuth2
 def sessions_table(sessions: list[dict[str, Any]]) -> Table:
     table = Table(title="Panopto Sessions")
     # table.add_column("Id", style="cyan", no_wrap=True)
-    table.add_column("Name", style="magenta")
+    table.add_column("Name", style="cyan")
+    table.add_column("Created", justify="right", style="magenta")
     # CreatedBy data empty in the API?
     # table.add_column("Creator", justify="right", style="cyan")
-    table.add_column("Duration (m)", justify="center", style="green")
-    table.add_column("Description", justify="right", style="green")
-    table.add_column("URL", justify="right", style="blue")
+    table.add_column("Duration (m)", justify="right", style="cyan")
+    table.add_column("Description", style="green")
+    table.add_column("URL", style="blue")
     for session in sessions:
+        date_created: datetime = datetime.fromisoformat(
+            session["StartTime"].rstrip("Z")
+        )
         table.add_row(
             session["Name"],
+            date_created.strftime("%Y-%m-%d"),
             # session.get("CreatedBy", {}).get("Username") or "[unknown]",
             str(round(session.get("Duration", 0.0) / 60.0, 2)),
             session["Description"],
