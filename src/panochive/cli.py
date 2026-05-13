@@ -74,6 +74,7 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
     server: str = environ.get("SERVER", "")
     client_id: str = environ.get("CLIENT_ID", "")
     client_secret: str = environ.get("CLIENT_SECRET", "")
+    DEBUG: bool = environ.get("DEBUG") in ("1", "true", "True")
     ssl_verify: bool = not skip_verify
     console: Console = Console()
 
@@ -92,11 +93,15 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
         folder: dict[str, Any] = api_client.get_folder(folder_id)
         console.print(f"=== FOLDER: {folder['Name']} ===", highlight=False)
         console.print(folder_table(folder))
+        if DEBUG:
+            console.print_json(data=folder)
         sessions: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
         if len(sessions):
             console.print(sessions_table(sessions))
         else:
             console.print("No sessions in this folder.")
+        if DEBUG:
+            console.print_json(data=sessions)
         exit(0)
     else:
         console.print("Non-test mode not implemented yet. Exiting.")
