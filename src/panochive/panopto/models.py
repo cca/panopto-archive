@@ -43,7 +43,7 @@ class Session(BaseModel):
     Folder: str
     FolderDetails: FolderDetails
     Context: Optional[List[SessionContext]] = None
-    PercentCompleted: int
+    PercentCompleted: Optional[int] = None
 
 
 class FolderUrls(BaseModel):

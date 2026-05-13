@@ -217,6 +217,41 @@ class TestSession:
         session = Session(**session_data)
         assert session.Context is None
 
+    def test_session_with_null_percent_completed(self) -> None:
+        """Session with null PercentCompleted."""
+        session_data = {
+            "Id": "session-123",
+            "Name": "Session Name",
+            "Description": "Test",
+            "StartTime": "2025-06-11T15:56:46.082Z",
+            "Duration": 3600.0,
+            "MostRecentViewPosition": 100.0,
+            "CreatedBy": {"Id": "user-123"},
+            "Urls": {"ViewerUrl": "https://example.com/viewer"},  # type: ignore
+            "Folder": "folder-123",
+            "FolderDetails": {"Id": "folder-123", "Name": "My Folder"},
+            "PercentCompleted": None,
+        }
+        session = Session(**session_data)
+        assert session.PercentCompleted is None
+
+    def test_session_without_percent_completed(self) -> None:
+        """Session without PercentCompleted field (defaults to None)."""
+        session_data = {
+            "Id": "session-123",
+            "Name": "Session Name",
+            "Description": "Test",
+            "StartTime": "2025-06-11T15:56:46.082Z",
+            "Duration": 3600.0,
+            "MostRecentViewPosition": 100.0,
+            "CreatedBy": {"Id": "user-123"},
+            "Urls": {"ViewerUrl": "https://example.com/viewer"},  # type: ignore
+            "Folder": "folder-123",
+            "FolderDetails": {"Id": "folder-123", "Name": "My Folder"},
+        }
+        session = Session(**session_data)
+        assert session.PercentCompleted is None
+
 
 class TestFolder:
     """Test Folder model."""
