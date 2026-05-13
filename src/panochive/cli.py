@@ -12,6 +12,8 @@ from .panopto.models import Folder, Session
 from .panopto.oauth2 import PanoptoOAuth2
 from .utils import format_duration
 
+DEBUG: bool = environ.get("DEBUG", "").lower() in ("true", "1", "t")
+
 
 def folder_table(folder: Folder) -> Table:
     # table alignment but no border lines
@@ -50,6 +52,44 @@ def sessions_table(sessions: list[Session]) -> Table:
     return table
 
 
+def print_folder_and_sessions(
+    api_client: PanoptoAPICLient,
+    folder_id: str,
+    console: Console,
+    recursive: bool,
+):
+    # get folder
+    folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
+    if DEBUG:
+        console.print_json(data=folder_dict)
+    folder = Folder(**folder_dict)
+    console.print(f"=== FOLDER: {folder.Name} ===", highlight=False)
+    console.print(folder_table(folder))
+
+    # get child sessions
+    session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
+    if DEBUG:
+        console.print_json(data=session_dicts)
+    sessions: list[Session] = [
+        Session(**session_dict) for session_dict in session_dicts
+    ]
+    if len(sessions):
+        console.print(sessions_table(sessions))
+    else:
+        console.print("No sessions in this folder.")
+
+    # recursively print subfolders
+    if recursive:
+        subfolders: list[dict[str, Any]] = api_client.get_children(folder_id)
+        for subfolder in subfolders:
+            print_folder_and_sessions(
+                api_client,
+                subfolder["Id"],
+                console,
+                recursive,
+            )
+
+
 @click.command()
 @click.help_option("--help", "-h")
 @click.argument(
@@ -74,7 +114,6 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
     server: str = environ.get("SERVER", "")
     client_id: str = environ.get("CLIENT_ID", "")
     client_secret: str = environ.get("CLIENT_SECRET", "")
-    DEBUG: bool = environ.get("DEBUG") in ("1", "true", "True")
     ssl_verify: bool = not skip_verify
     console: Console = Console()
 
@@ -87,29 +126,9 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
     oauth2: PanoptoOAuth2 = PanoptoOAuth2(server, client_id, client_secret, ssl_verify)
     api_client: PanoptoAPICLient = PanoptoAPICLient(server, ssl_verify, oauth2)
 
-    # merely testing auth, retrieve a folder and exit
+    # merely print folders when testing
     if test:
-        # get folder
-        folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
-        folder = Folder(**folder_dict)
-        console.print(f"=== FOLDER: {folder.Name} ===", highlight=False)
-        console.print(folder_table(folder))
-        if DEBUG:
-            console.print_json(data=folder_dict)
-
-        # get child sessions
-        session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(
-            folder_id
-        )
-        sessions: list[Session] = [
-            Session(**session_dict) for session_dict in session_dicts
-        ]
-        if len(sessions):
-            console.print(sessions_table(sessions))
-        else:
-            console.print("No sessions in this folder.")
-        if DEBUG:
-            console.print_json(data=session_dicts)
+        print_folder_and_sessions(api_client, folder_id, console, recursive)
     else:
         console.print("Non-test mode not implemented yet. Exiting.")
         exit(1)

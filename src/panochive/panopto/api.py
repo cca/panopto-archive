@@ -128,7 +128,7 @@ class PanoptoAPICLient:
                 url = f"https://{self.server}/Panopto/api/v1/folders/{folder_id}"
                 payload = {"Name": new_name}
                 headers = {"content-type": "application/json"}
-                resp = self.requests_session.put(url=url, json=payload, headers=headers)
+                resp = self.requests_session.put(url=url, json=payload, headers=headers)  # type: ignore
                 if self.__inspect_response_is_retry_needed(resp):
                     continue
                 return True
