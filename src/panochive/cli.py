@@ -8,23 +8,25 @@ from rich.console import Console
 from rich.table import Table
 
 from .panopto.api import PanoptoAPICLient
+from .panopto.models import Folder, Session
 from .panopto.oauth2 import PanoptoOAuth2
 from .utils import format_duration
 
 
-def folder_table(folder: dict[str, Any]) -> Table:
+def folder_table(folder: Folder) -> Table:
     # table alignment but no border lines
     table = Table(box=None, highlight=True, pad_edge=False)
-    table.add_row("Id:", folder["Id"])
-    table.add_row("Description:", folder["Description"])
-    table.add_row(
-        "Parent:", folder.get("ParentFolder", {}).get("Name", "NULL (possibly root?)")
+    table.add_row("Id:", folder.Id)
+    table.add_row("Description:", folder.Description or "")
+    parent_name = (
+        folder.ParentFolder.Name if folder.ParentFolder else "NULL (possibly root?)"
     )
-    table.add_row("URL:", folder["Urls"]["FolderUrl"])
+    table.add_row("Parent:", parent_name)
+    table.add_row("URL:", str(folder.Urls.FolderUrl))
     return table
 
 
-def sessions_table(sessions: list[dict[str, Any]]) -> Table:
+def sessions_table(sessions: list[Session]) -> Table:
     table = Table(title="Sessions")
     # table.add_column("Id", style="cyan", no_wrap=True)
     table.add_column("Name", style="cyan")
@@ -36,16 +38,14 @@ def sessions_table(sessions: list[dict[str, Any]]) -> Table:
     # URL gets truncated & unclickable in table
     # table.add_column("URL", style="blue")
     for session in sessions:
-        date_created: datetime = datetime.fromisoformat(
-            session["StartTime"].rstrip("Z")
-        )
+        date_created: datetime = session.StartTime
         table.add_row(
-            session["Name"],
+            session.Name,
             date_created.strftime("%Y-%m-%d"),
-            # session.get("CreatedBy", {}).get("Username") or "[unknown]",
-            format_duration(session.get("Duration", 0.0)),
-            session["Description"],
-            # session["Urls"]["ViewerUrl"],
+            # session.CreatedBy.Username or "[unknown]",
+            format_duration(session.Duration),
+            session.Description or "",
+            # str(session.Urls.ViewerUrl),
         )
     return table
 
@@ -89,20 +89,27 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
 
     # merely testing auth, retrieve a folder and exit
     if test:
-        # TODO models for Folder and Session objects
-        folder: dict[str, Any] = api_client.get_folder(folder_id)
-        console.print(f"=== FOLDER: {folder['Name']} ===", highlight=False)
+        # get folder
+        folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
+        folder = Folder(**folder_dict)
+        console.print(f"=== FOLDER: {folder.Name} ===", highlight=False)
         console.print(folder_table(folder))
         if DEBUG:
-            console.print_json(data=folder)
-        sessions: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
+            console.print_json(data=folder_dict)
+
+        # get child sessions
+        session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(
+            folder_id
+        )
+        sessions: list[Session] = [
+            Session(**session_dict) for session_dict in session_dicts
+        ]
         if len(sessions):
             console.print(sessions_table(sessions))
         else:
             console.print("No sessions in this folder.")
         if DEBUG:
-            console.print_json(data=sessions)
-        exit(0)
+            console.print_json(data=session_dicts)
     else:
         console.print("Non-test mode not implemented yet. Exiting.")
         exit(1)
