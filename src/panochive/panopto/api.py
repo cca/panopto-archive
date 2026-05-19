@@ -1,6 +1,8 @@
 #!python3
+import re
 import time
 import urllib.parse
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -136,7 +138,7 @@ class PanoptoAPICLient:
             print(f"Rename failed. {e}")
             return False
 
-    def delete_folder(self, folder_id):
+    def delete_folder(self, folder_id: str) -> bool:
         """
         Call DELETE /api/v1/folders/{id} API to delete a folder
         Return True if it succeeds, False if it fails.
@@ -152,7 +154,7 @@ class PanoptoAPICLient:
             print(f"Deletion failed. {e}")
             return False
 
-    def search_folders(self, query):
+    def search_folders(self, query: str) -> list[dict[str, Any]]:
         """
         Call GET /api/v1/folders/search API and return the list of entries.
         """
@@ -205,3 +207,120 @@ class PanoptoAPICLient:
             data = resp.json()
             break
         return data
+
+    def update_session_name(self, session_id: str, new_name: str) -> bool:
+        """
+        Call PUT /api/v1/sessions/{id} API to update the name
+        Return True if it succeeds, False if it fails.
+        """
+        try:
+            while True:
+                url = f"https://{self.server}/Panopto/api/v1/sessions/{session_id}"
+                payload = {"Name": new_name}
+                headers = {"content-type": "application/json"}
+                resp = self.requests_session.put(url=url, json=payload, headers=headers)  # type: ignore
+                if self.__inspect_response_is_retry_needed(resp):
+                    continue
+                return True
+        except Exception as e:
+            print(f"Rename failed. {e}")
+            return False
+
+    def delete_session(self, session_id: str) -> bool:
+        """
+        Call DELETE /api/v1/sessions/{id} API to delete a session
+        Return True if it succeeds, False if it fails.
+        """
+        try:
+            while True:
+                url = f"https://{self.server}/Panopto/api/v1/sessions/{session_id}"
+                resp = self.requests_session.delete(url=url)
+                if self.__inspect_response_is_retry_needed(resp):
+                    continue
+                return True
+        except Exception as e:
+            print(f"Deletion failed. {e}")
+            return False
+
+    def search_sessions(self, query: str) -> list[dict[str, Any]]:
+        """
+        Call GET /api/v1/sessions/search API and return the list of entries.
+        Pages through all results and returns the complete list.
+        """
+        result = []
+        page_number = 0
+        while True:
+            url = f"https://{self.server}/Panopto/api/v1/sessions/search?searchQuery={urllib.parse.quote_plus(query)}&pageNumber={page_number}"
+            resp = self.requests_session.get(url=url)
+            if self.__inspect_response_is_retry_needed(resp):
+                continue
+            data = resp.json()
+            entries = data["Results"]
+            if len(entries) == 0:
+                break
+            for entry in entries:
+                result.append(entry)
+            page_number += 1
+        return result
+
+    def download_session_file(
+        self,
+        download_url: str,
+        parent_folder: Path,
+        filename: str | None = None,
+        chunk_size: int = 8192,
+    ) -> bool:
+        """
+        Download a session file (video, captions, or thumbnail) using the provided URL.
+        Uses OAuth Bearer token authentication for Panopto-hosted URLs.
+
+        Args:
+            download_url: The URL to download from
+            parent_folder: Directory to save the file in
+            filename: Optional filename. If not provided, extracted from Content-Disposition header.
+            chunk_size: Size of chunks for streaming download
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        try:
+            parent_folder.mkdir(parents=True, exist_ok=True)
+
+            while True:
+                resp = self.requests_session.get(
+                    url=download_url, stream=True, allow_redirects=True
+                )
+                if self.__inspect_response_is_retry_needed(resp):
+                    continue
+                break
+
+            resp.raise_for_status()
+
+            # Extract filename from response if not provided
+            if not filename:
+                content_disposition: str = resp.headers.get("Content-Disposition", "")
+                # Parse filename from Content-Disposition header
+                # Format: attachment; filename="example.mp4" or filename=example.mp4
+                match = re.search(
+                    r'filename=(?:"([^"]+)"|([^\s;]+))', content_disposition
+                )
+                if match:
+                    filename = match.group(1) or match.group(2)
+                else:
+                    # Fallback: try to extract from URL
+                    filename = urllib.parse.urlparse(download_url).path.split("/")[-1]
+
+            if not filename:
+                print(f"Could not determine filename. Download failed: {download_url}")
+                return False
+
+            output_path: Path = parent_folder / filename
+            with open(output_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+            return True
+
+        except Exception as e:
+            print(f"Download failed. {e}")
+            return False

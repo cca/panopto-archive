@@ -23,9 +23,14 @@ def create_folder(parent: Path, name: str) -> Path:
 def download_session_files(
     api_client: PanoptoAPICLient, session_id: str, dest: Path, console: Console
 ) -> None:
-    console.print("Downloading session files not implemented yet. Skipping...")
     session_dict: dict[str, Any] = api_client.get_session(session_id)
     write_json(session_dict, dest / "session_metadata.json")
+    # See models SessionUrls
+    for url in ["DownloadUrl", "CaptionDownloadUrl", "ThumbnailUrl"]:
+        url: str | None = session_dict["Urls"].get(url)
+        if url:
+            api_client.download_session_file(url, parent_folder=dest)
+        # TODO debug message if URL is missing? Maybe we only care about DownloadUrl
 
 
 def write_json(data: Any, dest: Path) -> None:
