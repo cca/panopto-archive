@@ -7,6 +7,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from .download import download_panopto_folder
 from .panopto.api import PanoptoAPICLient
 from .panopto.models import Folder, Session
 from .panopto.oauth2 import PanoptoOAuth2
@@ -102,7 +103,7 @@ def print_folder_and_sessions(
     "-d",
     default="data",
     help="Destination for archived sessions",
-    type=click.Path(file_okay=False, dir_okay=True, writable=True, resolve_path=True),
+    type=click.Path(file_okay=False, dir_okay=True, writable=True, path_type=Path),
 )
 @click.option(
     "--recursive", "-r", is_flag=True, help="Recursively archive sessions in subfolders"
@@ -128,10 +129,8 @@ def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: b
 
     # merely print folders when testing
     if test:
-        print_folder_and_sessions(api_client, folder_id, console, recursive)
-    else:
-        console.print("Non-test mode not implemented yet. Exiting.")
-        exit(1)
+        return print_folder_and_sessions(api_client, folder_id, console, recursive)
+    return download_panopto_folder(api_client, folder_id, dest, console, recursive)
 
 
 if __name__ == "__main__":
