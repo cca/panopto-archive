@@ -21,7 +21,7 @@ def create_folder(parent: Path, name: str) -> Path:
 
 
 def download_session_files(
-    api_client: PanoptoAPICLient, session_id: str, dest: Path, console: Console
+    api_client: PanoptoAPICLient, session_id: str, dest: Path
 ) -> None:
     session_dict: dict[str, Any] = api_client.get_session(session_id)
     write_json(session_dict, dest / "session_metadata.json")
@@ -61,7 +61,7 @@ def download_panopto_folder(
         session_path: Path = create_folder(
             sessions_path, sanitize_path(session.Name, replacement=" ")
         )
-        download_session_files(api_client, session.Id, session_path, console)
+        download_session_files(api_client, session.Id, session_path)
 
     if recursive:
         subfolders: list[dict[str, Any]] = api_client.get_children(folder_id)

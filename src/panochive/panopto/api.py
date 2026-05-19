@@ -38,6 +38,33 @@ class PanoptoAPICLient:
             {"Authorization": "Bearer " + access_token}
         )
 
+    def __get_download_session(self):
+        """
+        Create a session with authenticated cookie for downloads.
+        Uses the legacy login endpoint to establish a cookie-based session.
+        """
+        download_session = requests.Session()
+        download_session.verify = self.ssl_verify
+
+        try:
+            # Get access token for credentials
+            access_token = self.oauth2.get_access_token_authorization_code_grant()
+
+            # Call legacy login endpoint with Bearer token to get authenticated cookie
+            url = f"https://{self.server}/Panopto/api/v1/auth/legacylogin"
+            headers = {"Authorization": "Bearer " + access_token}
+
+            resp = download_session.get(url=url, headers=headers)
+            if resp.status_code == 200:
+                # The cookie is automatically stored in the session
+                return download_session
+            else:
+                print(f"Failed to get download session cookie: {resp.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error creating download session: {e}")
+            return None
+
     def __inspect_response_is_retry_needed(self, response):
         """
         Inspect the response of a requets' call.
@@ -272,25 +299,32 @@ class PanoptoAPICLient:
     ) -> bool:
         """
         Download a session file (video, captions, or thumbnail) using the provided URL.
-        Uses OAuth Bearer token authentication for Panopto-hosted URLs.
+        Uses cookie-based authentication via legacy login endpoint.
 
         Args:
-            download_url: The URL to download from
-            parent_folder: Directory to save the file in
-            filename: Optional filename. If not provided, extracted from Content-Disposition header.
+            download_url: download URL (see Sessions[Urls])
+            parent_folder: Path to folder to save the file in
+            filename: Optional. If not provided, extracted from Content-Disposition header or URL.
             chunk_size: Size of chunks for streaming download
 
         Returns:
             True if successful, False otherwise.
         """
         try:
-            parent_folder.mkdir(parents=True, exist_ok=True)
+            # Get authenticated session with cookie
+            download_session: requests.Session | None = self.__get_download_session()
+            if not download_session:
+                print("Failed to establish authenticated download session")
+                return False
 
             while True:
-                resp = self.requests_session.get(
+                resp: requests.Response = download_session.get(
                     url=download_url, stream=True, allow_redirects=True
                 )
-                if self.__inspect_response_is_retry_needed(resp):
+                if resp.status_code == 401 or resp.status_code == 403:
+                    download_session = self.__get_download_session()
+                    if not download_session:
+                        return False
                     continue
                 break
 
