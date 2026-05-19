@@ -24,8 +24,8 @@ def download_session_files(
     api_client: PanoptoAPICLient, session_id: str, dest: Path, console: Console
 ) -> None:
     console.print("Downloading session files not implemented yet. Skipping...")
-    # api_client...
-    # write_json(session_dict, dest / "metadata.json")
+    session_dict: dict[str, Any] = api_client.get_session(session_id)
+    write_json(session_dict, dest / "session_metadata.json")
 
 
 def write_json(data: Any, dest: Path) -> None:
