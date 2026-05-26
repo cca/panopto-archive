@@ -397,6 +397,11 @@ class PanoptoAPICLient:
                 else:
                     # Fallback: try to extract from URL
                     filename = urllib.parse.urlparse(download_url).path.split("/")[-1]
+                    # Some Sessions (maybe only reference copies?) use a FrameRedirect URL that resolves to a PNG
+                    # https://ccarts.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=e1f4958a-11e5-4f61-b0a2-ae1c006ac46a
+                    # "https://ccarts.hosted.panopto.com/Panopto/Services/FrameGrabber.svc/FrameRedirect?objectId=e1f4958a-11e5-4f61-b0a2-ae1c006ac46a&mode=Delivery&random=0.0948754745046028&usePng=True"
+                    if filename == "FrameRedirect":
+                        filename = "thumbnail.png"
 
             if not filename:
                 print(f"Could not determine filename. Download failed: {download_url}")

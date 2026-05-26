@@ -32,9 +32,16 @@ def download_session_files(
     write_json(permissions_dict, dest / "permissions.json")
 
     # See models SessionUrls
-    for url in ["DownloadUrl", "CaptionDownloadUrl", "ThumbnailUrl"]:
-        url: str | None = session_dict["Urls"].get(url)
-        if url:
+    for session_url in ["DownloadUrl", "CaptionDownloadUrl", "ThumbnailUrl"]:
+        url: str | None = session_dict["Urls"].get(session_url)
+        if url == "#" and session_url == "DownloadUrl":
+            # this is a reference copy & there's no way to know where the original is
+            # https://community.panopto.com/discussion/comment/5585
+            with open(dest / "readme.txt", "w", encoding="utf-8") as f:
+                f.write(
+                    """This session is a reference copy and does not have its own media file. The original session it references may be in another folder. Unfortunately, there is no way to determine which session it references using the API, so you will need to use the Panopto website to locate the original."""
+                )
+        elif url:
             api_client.download_session_file(url, parent_folder=dest)
         # TODO debug message if URL is missing? Maybe we only care about DownloadUrl
 
