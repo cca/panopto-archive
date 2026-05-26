@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, HttpUrl
 
@@ -58,3 +58,36 @@ class Folder(BaseModel):
     Description: Optional[str] = None
     ParentFolder: Optional[FolderDetails] = None
     Urls: FolderUrls
+
+
+# Session & Folder access data shares a structure
+# https://ccarts.hosted.panopto.com/Panopto/Api/Docs/index.html#/Sessions/Sessions_GetAccessSettings
+# https://ccarts.hosted.panopto.com/Panopto/Api/Docs/index.html#/Folders/Folders_GetAccessSettings
+class AccessDetails(BaseModel):
+    IsInherited: bool
+    Level: Literal[
+        "Organization", "OrganizationUnlisted", "Public", "PublicUnlisted", "Restricted"
+    ]
+
+
+class Role(BaseModel):
+    Id: str
+    # TODO should be Literal["Viewer", "ViewerWithLink"] etc. but I don't know the full list
+    Name: str
+
+
+class Principal(BaseModel):
+    Id: str
+    Type: Literal["User", "Group"]
+
+
+# https://ccarts.hosted.panopto.com/Panopto/Api/Docs/index.html#/Sessions/Sessions_GetPermissions
+# https://ccarts.hosted.panopto.com/Panopto/Api/Docs/index.html#/Folders/Folders_GetPermissions
+class Permission(BaseModel):
+    IsInherited: bool
+    Role: Role
+    Principal: Principal
+
+
+class SessionPermissions(BaseModel):
+    Results: List[Permission]

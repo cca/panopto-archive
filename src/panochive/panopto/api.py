@@ -235,6 +235,32 @@ class PanoptoAPICLient:
             break
         return data
 
+    def get_session_access(self, session_id: str) -> dict[str, Any]:
+        """
+        Call GET /api/v1/sessions/{id}/access API and return the response
+        """
+        while True:
+            url = f"https://{self.server}/Panopto/api/v1/sessions/{session_id}/settings/access"
+            resp = self.requests_session.get(url=url)
+            if self.__inspect_response_is_retry_needed(resp):
+                continue
+            data = resp.json()
+            break
+        return data
+
+    def get_session_permissions(self, session_id: str) -> dict[str, Any]:
+        """
+        Call GET /api/v1/sessions/{id}/permissions API and return the response
+        """
+        while True:
+            url = f"https://{self.server}/Panopto/api/v1/sessions/{session_id}/permissions"
+            resp = self.requests_session.get(url=url)
+            if self.__inspect_response_is_retry_needed(resp):
+                continue
+            data = resp.json()
+            break
+        return data
+
     def update_session_name(self, session_id: str, new_name: str) -> bool:
         """
         Call PUT /api/v1/sessions/{id} API to update the name

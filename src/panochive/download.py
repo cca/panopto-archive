@@ -23,8 +23,14 @@ def create_folder(parent: Path, name: str) -> Path:
 def download_session_files(
     api_client: PanoptoAPICLient, session_id: str, dest: Path
 ) -> None:
+    # Write JSON metadata files
     session_dict: dict[str, Any] = api_client.get_session(session_id)
     write_json(session_dict, dest / "session_metadata.json")
+    access_dict: dict[str, Any] = api_client.get_session_access(session_id)
+    write_json(access_dict, dest / "access.json")
+    permissions_dict: dict[str, Any] = api_client.get_session_permissions(session_id)
+    write_json(permissions_dict, dest / "permissions.json")
+
     # See models SessionUrls
     for url in ["DownloadUrl", "CaptionDownloadUrl", "ThumbnailUrl"]:
         url: str | None = session_dict["Urls"].get(url)
