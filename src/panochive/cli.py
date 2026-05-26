@@ -34,21 +34,15 @@ def sessions_table(sessions: list[Session]) -> Table:
     # table.add_column("Id", style="cyan", no_wrap=True)
     table.add_column("Name", style="cyan")
     table.add_column("Created", justify="right", style="magenta")
-    # CreatedBy data empty in the API?
-    # table.add_column("Creator", justify="right", style="cyan")
     table.add_column("Duration", justify="right", style="cyan")
     table.add_column("Description", style="green")
-    # URL gets truncated & unclickable in table
-    # table.add_column("URL", style="blue")
     for session in sessions:
         date_created: datetime = session.StartTime
         table.add_row(
             session.Name,
             date_created.strftime("%Y-%m-%d"),
-            # session.CreatedBy.Username or "[unknown]",
             format_duration(session.Duration),
             session.Description or "",
-            # str(session.Urls.ViewerUrl),
         )
     return table
 
