@@ -35,8 +35,17 @@ uv run panochive --test c117dc01-bc96-4eca-a53a-ace50173fb6e
 ## Usage
 
 ```sh
-# might need to start with folder ID otherwise we need to folders/search first
-uv run panochive "CCA Departments" --dest data/
+# download Panopto folder to local "dest" folder (data by default)
+uv run panochive de58c934-a306-4aea-95c8-b45601224869 --dest path/to/dest
+# recursively download everything in a portion of the folder hierarchy
+uv run panochive -r de58c934-a306-4aea-95c8-b45601224869
+```
+
+Once downloaded, we can copy the files from their "dest" (data) folder to GCP using `gcloud storage cp`. Make sure to preserve the Panopto folder hierarchy, e.g. if you download ROOT/Libraries/CAPL Archive then the folder locally will be data/CAPL Archive. If you copy that to GCP, put it where it belongs under "Libraries", not in the bucket's root.
+
+```sh
+uv run panochive FOLDER_ID
+gcloud storage cp --recursive "data/CAPL Archive" "gs://panopto_archive/Libraries"
 ```
 
 ## Development
