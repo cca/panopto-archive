@@ -54,8 +54,14 @@ def download_panopto_folder(
     folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
     folder: Folder = Folder(**folder_dict)
     console.print(f"Processing folder: [bold]{folder.Name}[/bold]", highlight=False)
+
+    # Folder metadata & access/permissions data
     folder_path: Path = create_folder(dest, folder.Name)
     write_json(folder_dict, folder_path / "folder_metadata.json")
+    access_dict: dict[str, Any] = api_client.get_folder_access(folder_id)
+    write_json(access_dict, folder_path / "access.json")
+    permissions_dict: dict[str, Any] = api_client.get_folder_permissions(folder_id)
+    write_json(permissions_dict, folder_path / "permissions.json")
 
     session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
     sessions: list[Session] = [Session(**data) for data in session_dicts]

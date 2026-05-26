@@ -72,8 +72,16 @@ class AccessDetails(BaseModel):
 
 class Role(BaseModel):
     Id: str
-    # TODO should be Literal["Viewer", "ViewerWithLink"] etc. but I don't know the full list
-    Name: str
+    # Custom roles would add this to list, not surprised if it's incomplete
+    Name: Literal[
+        "Viewer",
+        "ViewerWithLink",
+        "Creator",
+        "Publisher",
+        "CaptionRequester",
+        "ContentOrganizer",
+        "AnalyticsManager",
+    ]
 
 
 class Principal(BaseModel):
@@ -89,5 +97,6 @@ class Permission(BaseModel):
     Principal: Principal
 
 
-class SessionPermissions(BaseModel):
+# Folder & Session APIs return a list of Permission objects (see above)
+class Permissions(BaseModel):
     Results: List[Permission]
