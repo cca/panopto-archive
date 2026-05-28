@@ -68,12 +68,12 @@ class PanoptoAPICLient:
     def __inspect_response_is_retry_needed(self, response):
         """
         Inspect the response of a requets' call.
-        True indicates the retry needed, False indicates success. Othrwise an exception is thrown.
+        True indicates the retry needed, False indicates success. Otherwise an exception is thrown.
         Reference: https://stackoverflow.com/a/24519419
 
         This method detects 401 (Unauthorized), refresh the access token, and returns as "is retry needed".
         This method also detects 429 (Too many request) which means API throttling by the server. Wait a sec and return as "is retry needed".
-        Prodcution code should handle other failure cases and errors as appropriate.
+        Production code should handle other failure cases and errors as appropriate.
         """
         if response.status_code // 100 == 2:
             # Success on 2xx response.
@@ -91,6 +91,24 @@ class PanoptoAPICLient:
 
         # Throw unhandled cases.
         response.raise_for_status()
+
+    def get(self, path: str) -> Any:
+        """
+        Call GET API and return the response data.
+        A generic method for GET calls not covered by other methods.
+        Exxample: api.get("/Panopto/api/v1/streams/{id}/captions")
+        or api.get("/v1/streams/{id}/captions") with autoprefixing
+        """
+        # Convenience: allow shorthand v1/route type paths without the /Panopto/api prefix
+        if not path.startswith("/Panopto/api"):
+            path = "/Panopto/api" + path
+        while True:
+            resp = self.requests_session.get(url=f"https://{self.server}/{path}")
+            if self.__inspect_response_is_retry_needed(resp):
+                continue
+            data = resp.json()
+            break
+        return data
 
     def get_children(self, folder_id):
         """
