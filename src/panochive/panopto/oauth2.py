@@ -1,7 +1,7 @@
 #!python3
+import logging
 import os
 import pickle
-import pprint
 import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler
@@ -14,9 +14,10 @@ from requests_oauthlib import OAuth2Session
 REDIRECT_URL: str = "http://localhost:9127/redirect"
 REDIRECT_PORT: int = 9127
 
-DEBUG: bool = os.environ.get("DEBUG", "").lower() in ("true", "1", "t")
 # Typical scope for accessing Panopto API.
 DEFAULT_SCOPE = ("openid", "api")
+
+logger = logging.getLogger(__name__)
 
 
 class PanoptoOAuth2:
@@ -25,8 +26,7 @@ class PanoptoOAuth2:
         self.client_secret = client_secret
         self.ssl_verify = ssl_verify
 
-        if DEBUG:
-            print(f"Initializing PanoptoOAuth2 with server: {server}")
+        logger.debug(f"Initializing PanoptoOAuth2 with server: {server}")
         # Create URI from
         self.authorization_endpoint = (
             f"https://{server}/Panopto/oauth2/connect/authorize"
@@ -67,15 +67,13 @@ class PanoptoOAuth2:
         authorization_url, state = session.authorization_url(
             self.authorization_endpoint
         )
-        if DEBUG:
-            print(f"Opening the browser for authorization: {authorization_url}")
+        logger.debug(f"Opening the browser for authorization: {authorization_url}")
         webbrowser.open_new_tab(authorization_url)
 
         # Launch HTTP server to receive the redirect after authorization.
         redirected_path = ""
         with RedirectTCPServer() as httpd:
-            if DEBUG:
-                print(f"HTTP server at port {REDIRECT_PORT} waiting for redirect.")
+            logger.debug(f"HTTP server at port {REDIRECT_PORT} waiting for redirect.")
             # Serve one request.
             httpd.handle_request()
             # The property may not be readable immediately. Wait until it becomes valid.
@@ -83,8 +81,7 @@ class PanoptoOAuth2:
                 time.sleep(1)
             redirected_path = httpd.last_get_path
 
-        if DEBUG:
-            print(f"Get new access token, return path: {redirected_path}")
+        logger.debug(f"Get new access token, return path: {redirected_path}")
         session.fetch_token(
             self.access_token_endpoint,
             client_secret=self.client_secret,
@@ -103,15 +100,14 @@ class PanoptoOAuth2:
         Returning None if failing to get the new access token with any reason.
         """
         try:
-            if DEBUG:
-                print(f"Read cached token from {self.cache_file}")
+            logger.debug(f"Read cached token from {self.cache_file}")
+            # TODO fix S301 https://docs.astral.sh/ruff/rules/suspicious-pickle-usage/
             with open(self.cache_file, "rb") as fr:
                 token = pickle.load(fr)
 
             session = OAuth2Session(self.client_id, token=token)
 
-            if DEBUG:
-                print("Get a new access token by using saved refresh token.")
+            logger.debug("Get a new access token by using saved refresh token.")
             extra = {"client_id": self.client_id, "client_secret": self.client_secret}
             session.refresh_token(
                 self.access_token_endpoint, verify=self.ssl_verify, **extra
@@ -122,7 +118,7 @@ class PanoptoOAuth2:
 
         # Catch any failures (exceptions) and return with None.
         except Exception as e:
-            print("Failed to refresh access token: " + str(e))
+            logger.exception("Failed to refresh access token: " + str(e))
             return None
 
     def __save_token_to_cache(self, token):
@@ -132,11 +128,10 @@ class PanoptoOAuth2:
         """
         with open(self.cache_file, "wb") as fw:
             pickle.dump(token, fw)
-        if DEBUG:
-            print(
-                f"OAuth2 flow provided the token below. Cache it to {self.cache_file}"
-            )
-            pprint.pprint(token, indent=4)
+        logger.debug(
+            f"OAuth2 flow provided the token below. Cache it to {self.cache_file}"
+        )
+        logger.debug(token)
 
     def get_access_token_resource_owner_grant(self, username, password):
         """
@@ -147,8 +142,7 @@ class PanoptoOAuth2:
         )
 
         # Retrieve access token
-        if DEBUG:
-            print("Get a new access token with username and password.")
+        logger.debug("Get a new access token with username and password.")
         scope = DEFAULT_SCOPE
         session.fetch_token(
             token_url=self.access_token_endpoint,
@@ -160,9 +154,8 @@ class PanoptoOAuth2:
             verify=self.ssl_verify,
         )
 
-        if DEBUG:
-            print("OAuth2 flow provided the token below.")
-            pprint.pprint(session.token, indent=4)
+        logger.debug("OAuth2 flow provided the token below.")
+        logger.debug(session.token)
         return session.token["access_token"]
 
 

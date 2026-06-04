@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from os import environ
 from pathlib import Path
@@ -13,7 +14,16 @@ from .panopto.models import Folder, Session
 from .panopto.oauth2 import PanoptoOAuth2
 from .utils import format_duration
 
-DEBUG: bool = environ.get("DEBUG", "").lower() in ("true", "1", "t")
+
+def configure_logging(debug: bool) -> None:
+    """Configure console logging for the panochive package."""
+    level: int = logging.DEBUG if debug else logging.WARNING
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%H:%M:%S",
+        force=True,
+    )
 
 
 def folder_table(folder: Folder) -> Table:
@@ -55,7 +65,7 @@ def print_folder_and_sessions(
 ):
     # get folder
     folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
-    if DEBUG:
+    if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
         console.print_json(data=folder_dict)
     folder = Folder(**folder_dict)
     console.print(f"=== FOLDER: {folder.Name} ===", highlight=False)
@@ -63,7 +73,7 @@ def print_folder_and_sessions(
 
     # get child sessions
     session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
-    if DEBUG:
+    if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
         console.print_json(data=session_dicts)
     sessions: list[Session] = [
         Session(**session_dict) for session_dict in session_dicts
@@ -104,8 +114,18 @@ def print_folder_and_sessions(
 )
 @click.option("--skip-verify", is_flag=True, help="Skip SSL certificate verification")
 @click.option("--test", is_flag=True, help="Print folder/session info, do not download")
-def main(folder_id: str, dest: Path, recursive: bool, skip_verify: bool, test: bool):
+@click.option("--debug", is_flag=True, help="Enable debug logging", envvar="DEBUG")
+def main(
+    folder_id: str,
+    dest: Path,
+    recursive: bool,
+    skip_verify: bool,
+    test: bool,
+    debug: bool,
+):
     """Archive Panopto sessions from a folder. Requires SERVER, CLIENT_ID, and CLIENT_SECRET environment variables."""
+    configure_logging(debug)
+
     server: str = environ.get("SERVER", "")
     client_id: str = environ.get("CLIENT_ID", "")
     client_secret: str = environ.get("CLIENT_SECRET", "")

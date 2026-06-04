@@ -1,4 +1,5 @@
 #!python3
+import logging
 import re
 import time
 import urllib.parse
@@ -6,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 # See https://github.com/Panopto/panopto-api-python-examples/tree/master/folders-cli
@@ -59,10 +62,12 @@ class PanoptoAPICLient:
                 # The cookie is automatically stored in the session
                 return download_session
             else:
-                print(f"Failed to get download session cookie: {resp.status_code}")
+                logger.warning(
+                    "Failed to get download session cookie: %s", resp.status_code
+                )
                 return None
         except Exception as e:
-            print(f"Error creating download session: {e}")
+            logger.exception("Error creating download session: %s", e)
             return None
 
     def __inspect_response_is_retry_needed(self, response):
@@ -80,12 +85,12 @@ class PanoptoAPICLient:
             return False
 
         if response.status_code == 401:
-            print("Unauthorized. Refresh access token.")
+            logger.warning("Unauthorized. Refresh access token.")
             self.__setup_or_refresh_access_token()
             return True
 
         if response.status_code == 429:
-            print("Too many requests. Wait one sec, and retry.")
+            logger.warning("Too many requests. Wait one sec, and retry.")
             time.sleep(1)
             return True
 
@@ -208,7 +213,7 @@ class PanoptoAPICLient:
                     continue
                 return True
         except Exception as e:
-            print(f"Rename failed. {e}")
+            logger.exception("Rename failed. %s", e)
             return False
 
     def delete_folder(self, folder_id: str) -> bool:
@@ -224,7 +229,7 @@ class PanoptoAPICLient:
                     continue
                 return True
         except Exception as e:
-            print(f"Deletion failed. {e}")
+            logger.exception("Deletion failed. %s", e)
             return False
 
     def search_folders(self, query: str) -> list[dict[str, Any]]:
@@ -322,7 +327,7 @@ class PanoptoAPICLient:
                     continue
                 return True
         except Exception as e:
-            print(f"Rename failed. {e}")
+            logger.exception("Rename failed. %s", e)
             return False
 
     def delete_session(self, session_id: str) -> bool:
@@ -338,7 +343,7 @@ class PanoptoAPICLient:
                     continue
                 return True
         except Exception as e:
-            print(f"Deletion failed. {e}")
+            logger.exception("Deletion failed. %s", e)
             return False
 
     def search_sessions(self, query: str) -> list[dict[str, Any]]:
@@ -386,7 +391,7 @@ class PanoptoAPICLient:
             # Get authenticated session with cookie
             download_session: requests.Session | None = self.__get_download_session()
             if not download_session:
-                print("Failed to establish authenticated download session")
+                logger.error("Failed to establish authenticated download session")
                 return False
 
             while True:
@@ -422,7 +427,9 @@ class PanoptoAPICLient:
                         filename = "thumbnail.png"
 
             if not filename:
-                print(f"Could not determine filename. Download failed: {download_url}")
+                logger.error(
+                    "Could not determine filename. Download failed: %s", download_url
+                )
                 return False
 
             output_path: Path = parent_folder / filename
@@ -433,5 +440,5 @@ class PanoptoAPICLient:
             return True
 
         except Exception as e:
-            print(f"Download failed. {e}")
+            logger.exception("Download failed. %s", e)
             return False
