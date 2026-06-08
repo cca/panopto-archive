@@ -1,6 +1,9 @@
 import os
 import re
 from math import floor
+from typing import Any
+
+from panochive.panopto.models import Folder
 
 
 def format_duration(seconds: float) -> str:
@@ -64,3 +67,19 @@ def sanitize_path(filename: str, replacement: str = "_") -> str:
 
     # Fallback if the string becomes empty (e.g. " ." -> "")
     return filename if filename else "untitled"
+
+
+def should_skip(folder_arg: dict[str, Any] | Folder, skip_list: set[str]) -> bool:
+    # cast folder dicts to Folder model for consistency
+    folder: Folder = (
+        Folder(**folder_arg) if isinstance(folder_arg, dict) else folder_arg
+    )
+    uuid_regex: re.Pattern[str] = re.compile(
+        r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+    for entry in skip_list:
+        if uuid_regex.match(entry) and folder.Id == entry:
+            return True
+        if folder.Name == entry:
+            return True
+    return False

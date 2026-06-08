@@ -40,6 +40,12 @@ uv run panochive de58c934-a306-4aea-95c8-b45601224869 --dest path/to/dest
 uv run panochive -r de58c934-a306-4aea-95c8-b45601224869
 ```
 
+### Skip Folders
+
+While recursing through the folder hierarchy, the `--skip-list` option or `SKIP_LIST` env var takes a JSON file containing an array of folder names or UUIDs to skip. We can skip specific folders we know we do not want to dwownload, e.g. due to privacy ("Faculty Affairs & Records") or copyright concerns ("Catalog Media").
+
+### Copy to GCP
+
 Once downloaded, we can copy the files from their "dest" (data) folder to GCP using `gcloud storage cp`. Make sure to preserve the Panopto folder hierarchy, e.g. if you download ROOT/Libraries/CAPL Archive then the folder locally will be data/CAPL Archive. If you copy that to GCP, put it where it belongs under "Libraries", not in the bucket's root.
 
 ```sh

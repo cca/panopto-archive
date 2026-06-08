@@ -7,7 +7,7 @@ from rich.console import Console
 
 from .panopto.api import PanoptoAPICLient
 from .panopto.models import Folder, Session
-from .utils import sanitize_path
+from .utils import sanitize_path, should_skip
 
 
 def create_folder(parent: Path, name: str) -> Path:
@@ -57,6 +57,7 @@ def download_panopto_folder(
     dest: Path,  # will be --dest for root & parent folder for recursive calls
     console: Console,
     recursive: bool,
+    skip_list: set[str],
 ) -> None:
     folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
     folder: Folder = Folder(**folder_dict)
@@ -85,10 +86,17 @@ def download_panopto_folder(
     if recursive:
         subfolders: list[dict[str, Any]] = api_client.get_children(folder_id)
         for subfolder in subfolders:
+            if should_skip(subfolder, skip_list):
+                console.print(
+                    f"Skipping folder: [bold]{subfolder['Name']}[/bold]",
+                    highlight=False,
+                )
+                continue
             download_panopto_folder(
                 api_client,
                 subfolder["Id"],
                 folder_path,
                 console,
                 recursive,
+                skip_list,
             )

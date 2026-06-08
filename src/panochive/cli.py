@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 from os import environ
@@ -12,7 +13,7 @@ from .download import download_panopto_folder
 from .panopto.api import PanoptoAPICLient
 from .panopto.models import Folder, Session
 from .panopto.oauth2 import PanoptoOAuth2
-from .utils import format_duration
+from .utils import format_duration, should_skip
 
 
 def configure_logging(debug: bool) -> None:
@@ -62,10 +63,12 @@ def print_folder_and_sessions(
     folder_id: str,
     console: Console,
     recursive: bool,
+    skip_list: set[str],
 ):
+    logger = logging.getLogger(__name__)
     # get folder
     folder_dict: dict[str, Any] = api_client.get_folder(folder_id)
-    if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
+    if logger.getEffectiveLevel() <= logging.DEBUG:
         console.print_json(data=folder_dict)
     folder = Folder(**folder_dict)
     console.print(f"=== FOLDER: {folder.Name} ===", highlight=False)
@@ -73,7 +76,7 @@ def print_folder_and_sessions(
 
     # get child sessions
     session_dicts: list[dict[str, Any]] = api_client.get_sessions_in_folder(folder_id)
-    if logging.getLogger().getEffectiveLevel() <= logging.DEBUG:
+    if logger.getEffectiveLevel() <= logging.DEBUG:
         console.print_json(data=session_dicts)
     sessions: list[Session] = [
         Session(**session_dict) for session_dict in session_dicts
@@ -87,12 +90,24 @@ def print_folder_and_sessions(
     if recursive:
         subfolders: list[dict[str, Any]] = api_client.get_children(folder_id)
         for subfolder in subfolders:
+            if should_skip(subfolder, skip_list):
+                console.print(
+                    f"Skipping folder: [bold]{subfolder['Name']}[/bold]",
+                    highlight=False,
+                )
+                continue
             print_folder_and_sessions(
                 api_client,
                 subfolder["Id"],
                 console,
                 recursive,
+                skip_list,
             )
+
+
+def get_skip_list(skip_list_file: Path) -> set[str]:
+    with open(skip_list_file, "r") as fh:
+        return set(json.load(fh))
 
 
 @click.command()
@@ -112,6 +127,13 @@ def print_folder_and_sessions(
 @click.option(
     "--recursive", "-r", is_flag=True, help="Recursively archive sessions in subfolders"
 )
+@click.option(
+    "--skip-list",
+    "skip_list_file",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    help="JSON array of folder names or IDs to skip. Can be set to SKIP_LIST env var.",
+    envvar="SKIP_LIST",
+)
 @click.option("--skip-verify", is_flag=True, help="Skip SSL certificate verification")
 @click.option("--test", is_flag=True, help="Print folder/session info, do not download")
 @click.option("--debug", is_flag=True, help="Enable debug logging", envvar="DEBUG")
@@ -120,11 +142,13 @@ def main(
     dest: Path,
     recursive: bool,
     skip_verify: bool,
+    skip_list_file: Path | None,
     test: bool,
     debug: bool,
 ):
     """Archive Panopto sessions from a folder. Requires SERVER, CLIENT_ID, and CLIENT_SECRET environment variables."""
     configure_logging(debug)
+    logger = logging.getLogger(__name__)
 
     server: str = environ.get("SERVER", "")
     client_id: str = environ.get("CLIENT_ID", "")
@@ -141,10 +165,19 @@ def main(
     oauth2: PanoptoOAuth2 = PanoptoOAuth2(server, client_id, client_secret, ssl_verify)
     api_client: PanoptoAPICLient = PanoptoAPICLient(server, ssl_verify, oauth2)
 
+    skip_list: set[str] = set()
+    if skip_list_file:
+        logger.debug(f"Skipping {len(skip_list)} folders from {skip_list_file}")
+        skip_list = get_skip_list(skip_list_file)
+
     # merely print folders when testing
     if test:
-        return print_folder_and_sessions(api_client, folder_id, console, recursive)
-    return download_panopto_folder(api_client, folder_id, dest, console, recursive)
+        return print_folder_and_sessions(
+            api_client, folder_id, console, recursive, skip_list
+        )
+    return download_panopto_folder(
+        api_client, folder_id, dest, console, recursive, skip_list
+    )
 
 
 if __name__ == "__main__":

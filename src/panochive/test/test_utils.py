@@ -1,9 +1,12 @@
 from pathlib import Path
+from typing import Any
 
 import pytest
+from pydantic import HttpUrl
 
 from panochive.download import create_folder
-from panochive.utils import format_duration, sanitize_path
+from panochive.panopto.models import Folder, FolderUrls
+from panochive.utils import format_duration, sanitize_path, should_skip
 
 
 @pytest.mark.parametrize(
@@ -61,3 +64,84 @@ def test_create_folder(tmp_path):
     folder2: Path = create_folder(tmp_path, folder2_name)
     assert folder2.is_dir()
     assert folder2.name == sanitize_path(folder2_name)
+
+
+def mk_folder_dict(folder_id: str, name: str) -> dict[str, Any]:
+    """Folders have a required structure and should_skip(Folder) passes them to the
+    model so we write helpers to create them
+    """
+    return {
+        "Id": folder_id,
+        "Name": name,
+        "Description": None,
+        "ParentFolder": None,
+        "Urls": {
+            "FolderUrl": "http://a.co",
+            "EmbedUrl": None,
+            "ShareSettingsUrl": None,
+        },
+    }
+
+
+def mk_folder_obj(folder_id: str, name: str) -> Folder:
+    urls = FolderUrls(
+        FolderUrl=HttpUrl("http://a.co"), EmbedUrl=None, ShareSettingsUrl=None
+    )
+    return Folder(
+        Id=folder_id,
+        Name=name,
+        Description=None,
+        ParentFolder=None,
+        Urls=urls,
+    )
+
+
+@pytest.mark.parametrize(
+    "folder_arg, skip_list, expected",
+    [
+        # match & not matched UUIDs
+        (
+            mk_folder_dict("41c73e26-234b-4e5b-b62e-ad200071da8c", "Folder 1"),
+            {"41c73e26-234b-4e5b-b62e-ad200071da8c"},
+            True,
+        ),
+        (
+            mk_folder_dict("41c73e26-234b-4e5b-b62e-ad200071da8c", "Folder 2"),
+            {"12345678-234b-4e5b-b62e-ad200071da8c"},
+            False,
+        ),
+        (
+            mk_folder_dict("12345678-234b-4e5b-b62e-ad200071da8c", "Matching Name"),
+            {"Matching Name"},
+            True,
+        ),
+        (
+            mk_folder_dict("12345678-234b-4e5b-b62e-ad200071da8c", "Folder"),
+            {"Not matching name"},
+            False,
+        ),
+        # Matching & not matching UUIDs with Folder objects instead of dicts
+        (
+            mk_folder_obj("12345678-234b-4e5b-b62e-ad200071da8c", "Folder 4"),
+            {"12345678-234b-4e5b-b62e-ad200071da8c"},
+            True,
+        ),
+        (
+            mk_folder_obj("12345678-234b-4e5b-b62e-ad200071da8c", "Folder 5"),
+            {"87654321-234b-4e5b-b62e-ad200071da8c"},
+            False,
+        ),
+        (
+            mk_folder_obj("12345678-234b-4e5b-b62e-ad200071da8c", "Matching name"),
+            {"Matching name"},
+            True,
+        ),
+        (
+            mk_folder_obj("12345678-234b-4e5b-b62e-ad200071da8c", "Folder"),
+            {"Not matching name"},
+            False,
+        ),
+    ],
+)
+def test_should_skip(folder_arg, skip_list, expected):
+    assert should_skip(folder_arg, skip_list) == expected
