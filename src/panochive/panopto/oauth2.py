@@ -103,7 +103,7 @@ class PanoptoOAuth2:
             logger.debug(f"Read cached token from {self.cache_file}")
             # TODO fix S301 https://docs.astral.sh/ruff/rules/suspicious-pickle-usage/
             with open(self.cache_file, "rb") as fr:
-                token = pickle.load(fr)
+                token = pickle.load(fr)  # noqa: S301
 
             session = OAuth2Session(self.client_id, token=token)
 
