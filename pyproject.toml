@@ -9,7 +9,7 @@ license = "ECL-2.0"
 readme = "readme.md"
 requires-python = ">=3.12"
 dependencies = [
-    "click==8.4.1",
+    "click==8.4.2",
     "oauthlib>=3.3.1",
     "pydantic>=2.13.4",
     "requests==2.34.2",
@@ -26,8 +26,8 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.3",
-    "ruff==0.15.15",
+    "pytest==9.1.1",
+    "ruff==0.15.20",
 ]
 
 [tool.ruff.lint]
