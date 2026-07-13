@@ -1,6 +1,5 @@
 import re
 import subprocess
-from os import environ
 from pathlib import Path
 from typing import Literal
 
@@ -53,7 +52,7 @@ def validate_s3_path(s3_path: str) -> bool:
 @click.option(
     "--bucket",
     type=str,
-    default=environ.get("AWS_ARCHIVE_BUCKET", ""),
+    envvar="AWS_ARCHIVE_BUCKET",
     help="S3 bucket to upload to (default AWS_ARCHIVE_BUCKET env var)",
 )
 @click.option(
