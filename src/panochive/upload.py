@@ -109,7 +109,7 @@ def sync_dir_to_cloud(
 ) -> None:
     """Sync a local directory to an S3 bucket with a path prefix. Use the prefix to ensure the location is right. I strongly recommend using --dry-run to ensure the paths look correct.
 
-    This command is merely a wrapper around `aws s3 sync` but it provides a few niceties: validates S3 path & storage class, ensures we specify a storage class, ensures the S3 path has a `panopto` prefix, and uses an AWS_ARCHIVE_BUCKET env var for the S3 bucket by default.
+    This command is merely a wrapper around `aws s3 sync` but it provides a few niceties: validates S3 path & storage class, ensures we specify a storage class, excludes .DS_Store files, ensures the S3 path has a `panopto` prefix, and uses an AWS_ARCHIVE_BUCKET env var for the S3 bucket by default.
 
     Example: uv run sync ./data "CCA Departments"
     """
@@ -126,6 +126,8 @@ def sync_dir_to_cloud(
         s3_path,
         "--storage-class",
         storage_class,
+        "--exclude",
+        "*.DS_Store",
     ]
     if dry_run:
         cmd.append("--dryrun")
