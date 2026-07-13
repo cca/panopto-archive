@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 panochive = "panochive.cli:main"
+sync = "panochive.upload:sync_dir_to_cloud"
 
 [build-system]
 requires = ["hatchling"]
