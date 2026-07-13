@@ -44,7 +44,19 @@ uv run panochive -r de58c934-a306-4aea-95c8-b45601224869
 
 While recursing through the folder hierarchy, the `--skip-list` option or `SKIP_LIST` env var takes a JSON file containing an array of folder names or UUIDs to skip. We can skip specific folders we know we do not want to dwownload, e.g. due to privacy ("Faculty Affairs & Records") or copyright concerns ("Catalog Media").
 
+### Copy to S3
+
+There is light wrapper around `aws s3 sync`, see `uv run sync --help` for details. In general, prefer using this tool rather than running aws commands manually to have some assurance and a consistent storage class. Set the name of the AWS bucket as an `AWS_ARCHIVE_BUCKET` env var. Examples:
+
+```sh
+uv run sync ./data Libraries --dry-run # see s3 paths before uploading
+uv run sync ./data "CCA Departments" # sync to s3://BUCKET/CCA Departments/...
+uv run sync ./data --quiet # no awscli output
+```
+
 ### Copy to GCP
+
+Generally, prefer using the archive S3 bucket above, but if for some reason we want to use GCP.
 
 Once downloaded, we can copy the files from their "dest" (data) folder to GCP using `gcloud storage cp`. Make sure to preserve the Panopto folder hierarchy, e.g. if you download ROOT/Libraries/CAPL Archive then the folder locally will be data/CAPL Archive. If you copy that to GCP, put it where it belongs under "Libraries", not in the bucket's root.
 
