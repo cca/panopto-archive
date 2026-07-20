@@ -6,7 +6,7 @@ Panopto provides no way to bulk download sessions. This is a simple command-line
 - (TODO) Filter through sessions according to criteria (e.g. an option to not download private sessions)
 - ✅ Download video & caption files
 - ❌ Confirm videos transferred successfully using content hashes
-- ❓ Push the video files to cloud storage
+- ✅ Push the video files to cloud storage
 - ✅ Retain the video metadata alongside the sessions
 - ✅ Mirror the Panopto folder hierarchy in cloud storage
 
