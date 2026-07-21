@@ -35,7 +35,7 @@ class Session(BaseModel):
     Id: str
     Name: str
     Description: Optional[str] = None
-    StartTime: datetime
+    StartTime: Optional[datetime] = None
     Duration: float
     MostRecentViewPosition: float
     CreatedBy: User
